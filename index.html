@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>HTML → APK Конвертер</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0c0c10;
+  --card:#13131a;
+  --border:#1e1e2e;
+  --border2:#2a2a40;
+  --green:#00ff88;
+  --green2:#00cc66;
+  --green3:#004422;
+  --yellow:#ffcc00;
+  --red:#ff4444;
+  --text:#e0e0f0;
+  --muted:#666680;
+  --muted2:#9090b0;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Space Mono',monospace;overflow-x:hidden}
+body{display:flex;flex-direction:column;min-height:100vh}
+
+/* Header */
+.hdr{padding:20px 16px 0;text-align:center}
+.hdr h1{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;letter-spacing:-0.5px;
+  background:linear-gradient(135deg,var(--green),#00ddff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hdr p{font-size:9px;color:var(--muted2);margin-top:4px;letter-spacing:1px;text-transform:uppercase}
+
+/* Steps indicator */
+.steps{display:flex;align-items:center;justify-content:center;gap:0;padding:16px 16px 0}
+.step-dot{width:28px;height:28px;border-radius:50%;border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--muted);font-family:'Syne',sans-serif;font-weight:700;transition:.3s;flex-shrink:0}
+.step-dot.active{border-color:var(--green);color:var(--green);box-shadow:0 0 12px rgba(0,255,136,.3)}
+.step-dot.done{background:var(--green3);border-color:var(--green2);color:var(--green)}
+.step-line{flex:1;height:2px;background:var(--border2);max-width:40px}
+.step-line.done{background:var(--green2)}
+
+/* Cards */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin:12px 16px;overflow:hidden}
+.card-head{padding:10px 14px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.card-body{padding:14px}
+
+/* Upload zone */
+.drop-zone{border:2px dashed var(--border2);border-radius:10px;padding:28px 16px;text-align:center;cursor:pointer;transition:.3s;position:relative}
+.drop-zone:hover,.drop-zone.over{border-color:var(--green);background:rgba(0,255,136,.04)}
+.drop-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.drop-icon{font-size:32px;margin-bottom:8px}
+.drop-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--green)}
+.drop-sub{font-size:8px;color:var(--muted);margin-top:4px}
+.file-chosen{background:rgba(0,255,136,.08);border-color:var(--green2);padding:12px 16px}
+.file-chosen .drop-icon{font-size:24px}
+
+/* Form fields */
+label{display:block;font-size:8px;color:var(--muted2);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;margin-top:10px}
+label:first-child{margin-top:0}
+input[type=text],textarea,select{width:100%;background:#0a0a12;border:1px solid var(--border2);border-radius:6px;padding:8px 10px;color:var(--text);font-family:'Space Mono',monospace;font-size:10px;outline:none;transition:.2s}
+input:focus,textarea:focus,select:focus{border-color:var(--green);box-shadow:0 0 0 2px rgba(0,255,136,.1)}
+textarea{resize:vertical;min-height:60px}
+select option{background:#13131a}
+
+/* Color row */
+.color-row{display:flex;gap:8px;align-items:center}
+.color-row input[type=color]{width:36px;height:36px;border-radius:6px;border:1px solid var(--border2);padding:2px;background:#0a0a12;cursor:pointer;flex-shrink:0}
+.color-row input[type=text]{flex:1}
+
+/* Buttons */
+.btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:12px 16px;border-radius:8px;border:none;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;font-size:11px;letter-spacing:.5px;transition:.2s;width:100%;margin-top:10px}
+.btn-green{background:linear-gradient(135deg,var(--green2),#00aa55);color:#000}
+.btn-green:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.btn-green:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--muted2)}
+.btn-ghost:hover{border-color:var(--green);color:var(--green)}
+.btn-yellow{background:linear-gradient(135deg,var(--yellow),#ff9900);color:#000}
+
+/* Progress */
+.progress-wrap{margin-top:10px;display:none}
+.progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--green),#00ddff);border-radius:2px;transition:width .4s;width:0%}
+.progress-label{font-size:8px;color:var(--muted2);margin-top:4px}
+
+/* Log */
+.log-box{background:#080810;border:1px solid var(--border);border-radius:8px;padding:10px;font-size:9px;line-height:1.8;max-height:160px;overflow-y:auto;margin-top:10px;display:none}
+.log-line{padding:1px 0}
+.log-line.ok{color:var(--green)}
+.log-line.warn{color:var(--yellow)}
+.log-line.err{color:var(--red)}
+.log-line.info{color:#88aaff}
+
+/* Result */
+.result-card{display:none}
+.apk-preview{background:linear-gradient(135deg,#0a1a0a,#0a0a1a);border:1px solid var(--green3);border-radius:12px;padding:16px;text-align:center;margin-bottom:12px}
+.apk-icon{width:64px;height:64px;border-radius:14px;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:32px}
+.apk-name{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--green)}
+.apk-pkg{font-size:8px;color:var(--muted);margin-top:2px}
+.apk-size{font-size:9px;color:var(--muted2);margin-top:6px}
+
+/* Steps */
+.how-steps{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.how-step{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;background:#0a0a14;border-radius:8px;border-left:2px solid var(--green3)}
+.how-step.highlight{border-left-color:var(--green);background:rgba(0,255,136,.04)}
+.how-num{width:20px;height:20px;border-radius:50%;background:var(--green3);border:1px solid var(--green2);display:flex;align-items:center;justify-content:center;font-size:8px;color:var(--green);flex-shrink:0;font-family:'Syne',sans-serif;font-weight:700}
+.how-text{font-size:9px;color:var(--muted2);line-height:1.6;flex:1}
+.how-text b{color:var(--text)}
+.how-text a{color:var(--green);text-decoration:none}
+
+/* Info block */
+.info-block{background:rgba(0,255,136,.05);border:1px solid var(--green3);border-radius:6px;padding:8px 10px;font-size:8px;color:var(--muted2);line-height:1.6;margin-bottom:8px}
+.info-block b{color:var(--green2)}
+
+/* Page system */
+.page{display:none;flex:1;flex-direction:column;padding-bottom:20px}
+.page.active{display:flex}
+
+/* Bottom nav */
+.bottom{padding:12px 16px;display:flex;gap:8px}
+
+/* Image list items */
+.img-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#0a0a14;border-radius:8px;border:1px solid var(--border)}
+.img-thumb{width:36px;height:36px;border-radius:5px;object-fit:cover;flex-shrink:0;border:1px solid var(--border2)}
+.img-info{flex:1;min-width:0}
+.img-name{font-size:9px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.img-meta{font-size:7px;color:var(--muted);margin-top:2px}
+.img-size-warn{color:var(--yellow)}
+.img-remove{background:none;border:1px solid var(--border2);color:var(--muted);border-radius:5px;padding:4px 7px;cursor:pointer;font-size:9px;flex-shrink:0}
+.img-remove:hover{border-color:var(--red);color:var(--red)}
+.perm-item{display:flex;align-items:center;gap:10px;padding:8px 10px;background:#0a0a14;border-radius:8px;border:1px solid var(--border);cursor:pointer;transition:.2s;user-select:none}
+.perm-item:hover{border-color:var(--border2)}
+.perm-item.active{border-color:var(--green3);background:rgba(0,255,136,.04)}
+.perm-item.active .perm-toggle{background:var(--green2);border-color:var(--green)}
+.perm-item.active .perm-toggle::after{transform:translateX(14px)}
+.perm-item.active .perm-name{color:var(--green2)}
+.perm-toggle{width:30px;height:16px;border-radius:8px;background:var(--border2);border:1px solid var(--border);position:relative;flex-shrink:0;transition:.2s}
+.perm-toggle::after{content:'';position:absolute;width:10px;height:10px;border-radius:50%;background:white;top:2px;left:2px;transition:.2s}
+.perm-icon{font-size:16px;flex-shrink:0;width:22px;text-align:center}
+.perm-info{flex:1;min-width:0}
+.perm-name{font-size:9px;color:var(--muted2);font-family:'Syne',sans-serif;font-weight:700;transition:.2s}
+.perm-desc{font-size:7px;color:var(--muted);margin-top:1px}
+.perm-danger{font-size:7px;color:var(--red);margin-top:2px}
+.perm-tag{font-size:6px;padding:1px 5px;border-radius:3px;margin-left:4px;font-family:'Syne',sans-serif;font-weight:700}
+.perm-tag.normal{background:#001a33;color:#4499ff}
+.perm-tag.danger{background:#330000;color:var(--red)}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <h1>⚡ HTML → APK</h1>
+  <p>Конвертер для AppsGeyser</p>
+</div>
+
+<!-- STEPS -->
+<div class="steps" id="steps-bar">
+  <div class="step-dot active" id="sdot-1">1</div>
+  <div class="step-line" id="sline-1"></div>
+  <div class="step-dot" id="sdot-2">2</div>
+  <div class="step-line" id="sline-2"></div>
+  <div class="step-dot" id="sdot-3">3</div>
+</div>
+
+<!-- PAGE 1: UPLOAD + CONFIG -->
+<div class="page active" id="page-1">
+
+  <div class="card">
+    <div class="card-head">📂 HTML ФАЙЛ</div>
+    <div class="card-body">
+      <div class="drop-zone" id="drop-zone">
+        <input type="file" id="file-input" accept=".html,.htm">
+        <div class="drop-icon" id="drop-icon">📄</div>
+        <div class="drop-title" id="drop-title">Натисни або перетягни HTML</div>
+        <div class="drop-sub" id="drop-sub">Підтримується .html, .htm</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">🖼️ ЗОБРАЖЕННЯ</div>
+    <div class="card-body">
+      <div class="info-block">Додай PNG/JPG/GIF зображення — вони будуть вбудовані в HTML як base64 або додані окремими файлами в ZIP.</div>
+
+      <div class="drop-zone" id="img-drop-zone" style="padding:16px">
+        <input type="file" id="img-input" accept="image/*" multiple>
+        <div class="drop-icon">🖼️</div>
+        <div class="drop-title" style="font-size:11px">Додати зображення</div>
+        <div class="drop-sub">PNG, JPG, GIF, WEBP — можна декілька</div>
+      </div>
+
+      <div id="img-list" style="display:flex;flex-direction:column;gap:6px;margin-top:8px"></div>
+
+      <div style="margin-top:8px;display:flex;gap:6px;align-items:center">
+        <label style="margin:0;display:flex;align-items:center;gap:6px;cursor:pointer;font-size:8px;color:var(--muted2)">
+          <input type="checkbox" id="embed-images" checked style="width:14px;height:14px;accent-color:var(--green)">
+          Вбудувати в HTML (base64) — один файл, без залежностей
+        </label>
+      </div>
+      <div style="font-size:7px;color:var(--muted);margin-top:3px">
+        ⚠ Великі зображення збільшують розмір APK. Рекомендується до 500KB на зображення.
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">📱 НАЛАШТУВАННЯ APK</div>
+    <div class="card-body">
+      <label>Назва додатку</label>
+      <input type="text" id="app-name" placeholder="Мій Додаток" value="">
+
+      <label>Package Name (латиниця, крапки)</label>
+      <input type="text" id="pkg-name" placeholder="com.myapp.example" value="">
+
+      <label>Опис</label>
+      <textarea id="app-desc" placeholder="Короткий опис додатку..."></textarea>
+
+      <label>Версія</label>
+      <input type="text" id="app-ver" value="1.0.0">
+
+      <label>Іконка (емодзі або залишити порожнім)</label>
+      <input type="text" id="app-icon" placeholder="🚀" value="">
+
+      <label>Колір теми</label>
+      <div class="color-row">
+        <input type="color" id="theme-color" value="#6200ea">
+        <input type="text" id="theme-color-text" value="#6200ea" placeholder="#6200ea">
+      </div>
+
+      <label>Орієнтація екрану</label>
+      <select id="orientation">
+        <option value="portrait">Портрет (вертикально)</option>
+        <option value="landscape">Ландшафт (горизонтально)</option>
+        <option value="unspecified">Будь-яка</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">🔐 ДОЗВОЛИ (PERMISSIONS)</div>
+    <div class="card-body">
+      <div class="info-block">Вибери що потрібно твоєму додатку. <b>Менше дозволів = більше довіри користувачів.</b></div>
+      <div id="perms-grid" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+  </div>
+
+  <div class="card" style="border-color:rgba(0,255,136,.3);box-shadow:0 0 20px rgba(0,255,136,.05)">
+    <div class="mc-head" style="padding:10px 14px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;border-bottom:1px solid var(--border);color:var(--green)">⚡ АВТО-ДЕПЛОЙ НА GITHUB</div>
+    <div class="card-body">
+      <div class="info-block">Програма <b>сама</b> створить репозиторій, завантажить файли і запустить збірку APK. Потрібен тільки GitHub токен (один раз).</div>
+
+      <label>GitHub Personal Access Token</label>
+      <div style="display:flex;gap:6px">
+        <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" style="flex:1" autocomplete="off">
+        <button onclick="toggleGhToken()" style="background:none;border:1px solid var(--border2);color:var(--muted2);border-radius:6px;padding:0 10px;cursor:pointer;font-size:10px">👁</button>
+      </div>
+      <div style="font-size:7px;color:var(--muted);margin-top:4px;line-height:1.7">
+        Отримай на <b>github.com → Settings → Developer settings → Personal access tokens → Tokens (classic)</b><br>
+        Потрібні права: <b>repo</b> (повний доступ до репозиторіїв)
+      </div>
+      <div id="gh-token-status" style="font-size:8px;margin-top:5px;color:var(--muted)">⚪ Токен не введено</div>
+
+      <label style="margin-top:10px">Назва репозиторію (латиниця)</label>
+      <input type="text" id="gh-repo-name" placeholder="my-app" value="">
+
+      <button class="btn btn-green" onclick="autoDeployGitHub()" id="btn-auto-deploy" style="margin-top:10px;background:linear-gradient(135deg,#00aa44,#007733)">
+        🚀 ЗРОБИТИ APK АВТОМАТИЧНО
+      </button>
+      <div id="auto-deploy-status" style="display:none;margin-top:8px"></div>
+    </div>
+  </div>
+
+  <div class="bottom">
+    <button class="btn btn-ghost" onclick="goStep2()" id="btn-next" style="flex:1">
+      📦 Тільки ZIP (вручну)
+    </button>
+  </div>
+</div>
+
+<!-- PAGE 2: PROCESSING -->
+<div class="page" id="page-2">
+  <div class="card">
+    <div class="card-head">⚙️ ГЕНЕРАЦІЯ ФАЙЛІВ</div>
+    <div class="card-body">
+      <div class="info-block">
+        Готую всі файли для <b>AppsGeyser.com</b> — безкоштовний онлайн APK конвертер.
+        Після цього завантажиш ZIP на сайт і отримаєш APK.
+      </div>
+
+      <div class="progress-wrap" id="progress-wrap" style="display:block">
+        <div class="progress-bar"><div class="progress-fill" id="prog-fill"></div></div>
+        <div class="progress-label" id="prog-label">Ініціалізація...</div>
+      </div>
+
+      <div class="log-box" id="log-box" style="display:block"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 3: RESULT -->
+<div class="page" id="page-3">
+
+  <div class="card">
+    <div class="card-head"><span style="color:var(--green)">✅ ГОТОВО!</span></div>
+    <div class="card-body">
+      <div class="apk-preview">
+        <div class="apk-icon" id="result-icon" style="background:#1a0a3a">🚀</div>
+        <div class="apk-name" id="result-name">Мій Додаток</div>
+        <div class="apk-pkg" id="result-pkg">com.myapp.example</div>
+        <div class="apk-size" id="result-size">~ файлів згенеровано</div>
+      </div>
+
+      <button class="btn btn-green" id="btn-download" onclick="downloadZip()">
+        📦 СКАЧАТИ ZIP ПРОЕКТ
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head" style="color:var(--green)">⚡ АВТОМАТИЧНИЙ APK через GitHub</div>
+    <div class="card-body">
+      <div class="info-block"><b>Безкоштовно, без реклами, справжній APK!</b> GitHub сам збере його на своїх серверах.</div>
+      <div class="how-steps">
+        <div class="how-step highlight">
+          <div class="how-num">1</div>
+          <div class="how-text">Зареєструйся на <b><a href="https://github.com" target="_blank">github.com</a></b> → <b>New repository</b> → Public → Create</div>
+        </div>
+        <div class="how-step highlight">
+          <div class="how-num">2</div>
+          <div class="how-text">Натисни <b>"uploading an existing file"</b> → перетягни <b>ВСІ файли</b> з ZIP → <b>Commit changes</b></div>
+        </div>
+        <div class="how-step highlight">
+          <div class="how-num">3</div>
+          <div class="how-text">Відкрий вкладку <b>Actions</b> → побачиш <b>"Build APK"</b> — запуститься автоматично!</div>
+        </div>
+        <div class="how-step highlight">
+          <div class="how-num">4</div>
+          <div class="how-text">Чекай <b>3-7 хвилин</b> → натисни на workflow → <b>Artifacts</b> → скачай APK 🎉</div>
+        </div>
+        <div class="how-step">
+          <div class="how-num">5</div>
+          <div class="how-text">Наступного разу — просто завантажуй новий <b>index.html</b> і APK збереться знову автоматично!</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">📱 AppsGeyser (альтернатива)</div>
+    <div class="card-body">
+      <button class="btn btn-yellow" onclick="openAppsGeyser()" style="margin-top:0">
+        🌐 APPSGEYSER.COM (з рекламою)
+      </button>
+      <div style="font-size:7px;color:var(--muted);margin-top:6px">Завантаж index.html → Create App → Build APK</div>
+    </div>
+  </div>
+
+  <div class="bottom">
+    <button class="btn btn-ghost" onclick="reset()">🔄 Конвертувати ще</button>
+  </div>
+</div>
+
+<!-- PWA MODAL -->
+<div id="pwa-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;padding:16px;overflow-y:auto">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;max-width:500px;margin:0 auto">
+    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:var(--green);margin-bottom:12px">
+      📱 PWA — Додаток без APK
+    </div>
+    <div class="how-steps">
+      <div class="how-step highlight">
+        <div class="how-num">1</div>
+        <div class="how-text">Зареєструйся на <b><a href="https://github.com" target="_blank">github.com</a></b> (безкоштовно)</div>
+      </div>
+      <div class="how-step highlight">
+        <div class="how-num">2</div>
+        <div class="how-text">Створи новий репозиторій → завантаж усі файли з ZIP</div>
+      </div>
+      <div class="how-step highlight">
+        <div class="how-num">3</div>
+        <div class="how-text">Settings → Pages → Source: main branch → Save</div>
+      </div>
+      <div class="how-step highlight">
+        <div class="how-num">4</div>
+        <div class="how-text">Відкрий посилання на телефоні в Chrome → три крапки → <b>"Додати на головний екран"</b></div>
+      </div>
+      <div class="how-step">
+        <div class="how-num">5</div>
+        <div class="how-text">Готово! Додаток на головному екрані, працює офлайн, <b>без реклами!</b></div>
+      </div>
+    </div>
+    <button class="btn btn-ghost" onclick="document.getElementById('pwa-modal').style.display='none'" style="margin-top:10px">✖ Закрити</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+let htmlContent='';
+let zipBlob=null;
+
+// ── IMAGES ──
+const images=[];
+
+const imgInput=document.getElementById('img-input');
+const imgDropZone=document.getElementById('img-drop-zone');
+
+imgInput.addEventListener('change',e=>{
+  [...e.target.files].forEach(f=>loadImage(f));
+  imgInput.value='';
+});
+imgDropZone.addEventListener('dragover',e=>{e.preventDefault();imgDropZone.classList.add('over');});
+imgDropZone.addEventListener('dragleave',()=>imgDropZone.classList.remove('over'));
+imgDropZone.addEventListener('drop',e=>{
+  e.preventDefault();imgDropZone.classList.remove('over');
+  [...e.dataTransfer.files].filter(f=>f.type.startsWith('image/')).forEach(f=>loadImage(f));
+});
+
+function loadImage(file){
+  if(images.find(i=>i.name===file.name)) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const dataUrl=e.target.result;
+    const base64=dataUrl.split(',')[1];
+    images.push({name:file.name,type:file.type,size:file.size,dataUrl,base64});
+    renderImageList();
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeImage(name){
+  const idx=images.findIndex(i=>i.name===name);
+  if(idx>=0) images.splice(idx,1);
+  renderImageList();
+}
+
+function renderImageList(){
+  const list=document.getElementById('img-list');
+  if(!images.length){list.innerHTML='';return;}
+  list.innerHTML='';
+  images.forEach(img=>{
+    const div=document.createElement('div');
+    div.className='img-item';
+    const warn=img.size>500*1024;
+    div.innerHTML=`
+      <img src="${img.dataUrl}" class="img-thumb" alt="${img.name}">
+      <div class="img-info">
+        <div class="img-name">${img.name}</div>
+        <div class="img-meta">${formatSize(img.size)} · ${img.type.split('/')[1].toUpperCase()}${warn?' <span class="img-size-warn">⚠ велике</span>':''}</div>
+      </div>
+      <button class="img-remove" onclick="removeImage('${img.name}')">✖</button>`;
+    list.appendChild(div);
+  });
+}
+
+// ── PERMISSIONS ──
+const PERMISSIONS=[
+  {id:'internet',       icon:'🌐', name:'Інтернет',           desc:'Доступ до мережі, API, сайтів',         manifest:'INTERNET',                       danger:false, default:true},
+  {id:'storage_read',  icon:'📂', name:'Читати файли',        desc:'Читати файли з пам\'яті телефону',      manifest:'READ_EXTERNAL_STORAGE',           danger:false, default:false},
+  {id:'storage_write', icon:'💾', name:'Зберігати файли',     desc:'Записувати файли, зберігати дані',      manifest:'WRITE_EXTERNAL_STORAGE',          danger:false, default:false},
+  {id:'camera',        icon:'📷', name:'Камера',              desc:'Доступ до камери телефону',             manifest:'CAMERA',                         danger:true,  default:false},
+  {id:'microphone',    icon:'🎤', name:'Мікрофон',            desc:'Запис аудіо, голосові функції',         manifest:'RECORD_AUDIO',                   danger:true,  default:false},
+  {id:'location',      icon:'📍', name:'Геолокація',          desc:'GPS координати користувача',            manifest:'ACCESS_FINE_LOCATION',            danger:true,  default:false},
+  {id:'location_bg',   icon:'🗺️', name:'Геолокація фоново',  desc:'Відстежувати місцезнаходження завжди',  manifest:'ACCESS_BACKGROUND_LOCATION',      danger:true,  default:false},
+  {id:'vibrate',       icon:'📳', name:'Вібрація',            desc:'Вібрувати телефоном',                   manifest:'VIBRATE',                        danger:false, default:false},
+  {id:'notifications', icon:'🔔', name:'Сповіщення',          desc:'Показувати push-сповіщення',            manifest:'POST_NOTIFICATIONS',             danger:false, default:false},
+  {id:'bluetooth',     icon:'🔵', name:'Bluetooth',           desc:'Підключення до BT пристроїв',           manifest:'BLUETOOTH_CONNECT',              danger:false, default:false},
+  {id:'nfc',           icon:'📶', name:'NFC',                 desc:'Зчитування NFC тегів',                  manifest:'NFC',                            danger:false, default:false},
+  {id:'contacts',      icon:'👤', name:'Контакти',            desc:'Читати список контактів',               manifest:'READ_CONTACTS',                  danger:true,  default:false},
+  {id:'phone',         icon:'📞', name:'Дзвінки',             desc:'Зробити дзвінок, читати стан телефону', manifest:'CALL_PHONE',                     danger:true,  default:false},
+  {id:'biometric',     icon:'🔏', name:'Біометрія',           desc:'Face ID / відбиток пальця',             manifest:'USE_BIOMETRIC',                  danger:false, default:false},
+  {id:'fullscreen',    icon:'⛶',  name:'Повноекранний режим', desc:'Сховати статус-бар і навігацію',         manifest:'FULLSCREEN',                     danger:false, default:true},
+];
+
+const activePerms=new Set(PERMISSIONS.filter(p=>p.default).map(p=>p.id));
+
+function buildPermsGrid(){
+  const grid=document.getElementById('perms-grid');
+  grid.innerHTML='';
+  PERMISSIONS.forEach(p=>{
+    const item=document.createElement('div');
+    item.className='perm-item'+(activePerms.has(p.id)?' active':'');
+    item.id='perm-'+p.id;
+    item.onclick=()=>togglePerm(p.id);
+    item.innerHTML=`
+      <div class="perm-icon">${p.icon}</div>
+      <div class="perm-info">
+        <div class="perm-name">${p.name}
+          <span class="perm-tag ${p.danger?'danger':'normal'}">${p.danger?'⚠ НЕБЕЗПЕЧНИЙ':'НОРМАЛЬНИЙ'}</span>
+        </div>
+        <div class="perm-desc">${p.desc}</div>
+        ${p.danger?'<div class="perm-danger">Потребує підтвердження користувача</div>':''}
+      </div>
+      <div class="perm-toggle"></div>`;
+    grid.appendChild(item);
+  });
+}
+
+function togglePerm(id){
+  if(activePerms.has(id)) activePerms.delete(id);
+  else activePerms.add(id);
+  const item=document.getElementById('perm-'+id);
+  const p=PERMISSIONS.find(x=>x.id===id);
+  if(activePerms.has(id)){
+    item.classList.add('active');
+  } else {
+    item.classList.remove('active');
+  }
+}
+
+buildPermsGrid();
+const fileInput=document.getElementById('file-input');
+const dropZone=document.getElementById('drop-zone');
+
+fileInput.addEventListener('change',e=>{
+  const f=e.target.files[0];
+  if(f) loadFile(f);
+});
+dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('over');});
+dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('over'));
+dropZone.addEventListener('drop',e=>{
+  e.preventDefault();dropZone.classList.remove('over');
+  const f=e.dataTransfer.files[0];
+  if(f&&(f.name.endsWith('.html')||f.name.endsWith('.htm'))) loadFile(f);
+});
+
+function loadFile(f){
+  const reader=new FileReader();
+  reader.onload=e=>{
+    htmlContent=e.target.result;
+    // Auto-fill name from title
+    const m=htmlContent.match(/<title>(.*?)<\/title>/i);
+    if(m&&m[1]){
+      document.getElementById('app-name').value=m[1];
+      document.getElementById('pkg-name').value='com.'+m[1].toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,12)+'.app';
+    }
+    dropZone.classList.add('file-chosen');
+    document.getElementById('drop-icon').textContent='✅';
+    document.getElementById('drop-title').textContent=f.name;
+    document.getElementById('drop-sub').textContent=formatSize(f.size)+' • готово до конвертації';
+  };
+  reader.readAsText(f);
+}
+
+// ── COLOR SYNC ──
+document.getElementById('theme-color').addEventListener('input',e=>{
+  document.getElementById('theme-color-text').value=e.target.value;
+});
+document.getElementById('theme-color-text').addEventListener('input',e=>{
+  if(/^#[0-9a-fA-F]{6}$/.test(e.target.value))
+    document.getElementById('theme-color').value=e.target.value;
+});
+
+// ── STEP NAVIGATION ──
+function setStep(n){
+  [1,2,3].forEach(i=>{
+    const dot=document.getElementById('sdot-'+i);
+    dot.className='step-dot'+(i<n?' done':i===n?' active':'');
+    if(i<3){
+      const line=document.getElementById('sline-'+i);
+      line.className='step-line'+(i<n?' done':'');
+    }
+    document.getElementById('page-'+i).className='page'+(i===n?' active':'');
+  });
+}
+
+function log(msg,type=''){
+  const box=document.getElementById('log-box');
+  const d=document.createElement('div');
+  d.className='log-line'+(type?' '+type:'');
+  d.textContent='['+new Date().toLocaleTimeString('uk',{hour:'2-digit',minute:'2-digit',second:'2-digit'})+'] '+msg;
+  box.appendChild(d);
+  box.scrollTop=box.scrollHeight;
+}
+function setProgress(pct,label){
+  document.getElementById('prog-fill').style.width=pct+'%';
+  document.getElementById('prog-label').textContent=label;
+}
+
+// ── STEP 2: CONVERT ──
+async function goStep2(silentMode=false){
+  if(!htmlContent){
+    alert('Спочатку завантаж HTML файл!');
+    return;
+  }
+  if(!silentMode) setStep(2);
+  await new Promise(r=>setTimeout(r,100));
+
+  const name=document.getElementById('app-name').value||'MyApp';
+  const pkg=document.getElementById('pkg-name').value||'com.myapp.app';
+  const desc=document.getElementById('app-desc').value||'HTML Application';
+  const ver=document.getElementById('app-ver').value||'1.0.0';
+  const icon=document.getElementById('app-icon').value||'🚀';
+  const color=document.getElementById('theme-color').value||'#6200ea';
+  const orient=document.getElementById('orientation').value;
+
+  // Collect selected permissions
+  const selectedPerms=PERMISSIONS.filter(p=>activePerms.has(p.id));
+  const permManifest=selectedPerms.map(p=>p.manifest);
+
+  const zip=new JSZip();
+
+  // ── index.html (main app file) ──
+  setProgress(10,'Обробляю HTML...');
+  log('📄 Копіюю HTML файл...');
+  await sleep(200);
+
+  // Inject PWA meta tags if not present
+  let processedHtml=htmlContent;
+  if(!processedHtml.includes('manifest.json')){
+    processedHtml=processedHtml.replace(
+      '</head>',
+      `  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="${color}">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="${name}">
+  <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');<\/script>
+</head>`
+    );
+  }
+  zip.file('index.html', processedHtml);
+  log('✅ index.html — '+formatSize(processedHtml.length),'ok');
+
+  // ── IMAGES ──
+  if(images.length){
+    setProgress(18,'Обробляю зображення...');
+    const embed=document.getElementById('embed-images').checked;
+    log(`🖼️ Зображень: ${images.length} (режим: ${embed?'вбудовані в HTML':'окремі файли'})...`,'info');
+
+    if(embed){
+      // Replace src="filename.png" references in HTML with base64 data URLs
+      let embeddedHtml=processedHtml;
+      let embCount=0;
+      images.forEach(img=>{
+        // Replace all references to this filename: src="img.png", url('img.png'), href="img.png"
+        const escaped=img.name.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+        const re=new RegExp(`(src|href|url\\()(["\']?)${escaped}\\2(\\)?)`, 'gi');
+        const dataUrl=`data:${img.type};base64,${img.base64}`;
+        if(re.test(embeddedHtml)){
+          embeddedHtml=embeddedHtml.replace(new RegExp(`(src=["'])${escaped}(["'])`, 'gi'), `$1${dataUrl}$2`);
+          embeddedHtml=embeddedHtml.replace(new RegExp(`(href=["'])${escaped}(["'])`, 'gi'), `$1${dataUrl}$2`);
+          embeddedHtml=embeddedHtml.replace(new RegExp(`url\\(['"]?${escaped}['"]?\\)`, 'gi'), `url('${dataUrl}')`);
+          embCount++;
+          log(`  ↳ ${img.name} (${formatSize(img.size)}) вбудовано в HTML`,'ok');
+        } else {
+          // Not referenced in HTML — add to ZIP anyway
+          zip.folder('images').file(img.name, img.base64, {base64:true});
+          log(`  ↳ ${img.name} — не знайдено в HTML, додано в images/`,'warn');
+        }
+      });
+      // Update index.html with embedded images
+      zip.file('index.html', embeddedHtml);
+      log(`✅ ${embCount} зображень вбудовано в HTML`,'ok');
+    } else {
+      // Add as separate files in images/ folder
+      const imgFolder=zip.folder('images');
+      images.forEach(img=>{
+        imgFolder.file(img.name, img.base64, {base64:true});
+        log(`  ↳ images/${img.name} (${formatSize(img.size)})`,'ok');
+      });
+      log(`✅ ${images.length} зображень додано в папку images/`,'ok');
+    }
+  }
+
+  // ── manifest.json (PWA) ──
+  setProgress(25,'Генерую маніфест...');
+  log('📱 Генерую PWA manifest.json...');
+  await sleep(150);
+
+  const manifest={
+    name: name,
+    short_name: name.slice(0,12),
+    description: desc,
+    start_url: './index.html',
+    display: 'standalone',
+    background_color: '#000000',
+    theme_color: color,
+    orientation: orient==='unspecified'?'any':orient,
+    icons:[
+      {src:'icon-192.png',sizes:'192x192',type:'image/png',purpose:'any maskable'},
+      {src:'icon-512.png',sizes:'512x512',type:'image/png',purpose:'any maskable'}
+    ]
+  };
+  zip.file('manifest.json', JSON.stringify(manifest,null,2));
+  log('✅ manifest.json','ok');
+
+  // ── Service Worker ──
+  setProgress(40,'Генерую Service Worker...');
+  log('⚙️ Генерую sw.js (офлайн підтримка)...');
+  await sleep(150);
+
+  const swJs=`const CACHE='${pkg}-v${ver}';
+const FILES=['./','./index.html','./manifest.json'];
+self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES))));
+self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request))));
+self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k))))));`;
+  zip.file('sw.js', swJs);
+  log('✅ sw.js — офлайн підтримка','ok');
+
+  // ── Icons (generated via canvas) ──
+  setProgress(55,'Генерую іконки...');
+  log('🎨 Генерую іконки...');
+  await sleep(100);
+
+  // Rounded rect polyfill for old Android browsers
+  function roundedRect(ctx, x, y, w, h, r){
+    r=Math.min(r, w/2, h/2);
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.lineTo(x+w-r, y);
+    ctx.arcTo(x+w, y,   x+w, y+r,   r);
+    ctx.lineTo(x+w, y+h-r);
+    ctx.arcTo(x+w, y+h, x+w-r, y+h, r);
+    ctx.lineTo(x+r, y+h);
+    ctx.arcTo(x,   y+h, x,   y+h-r, r);
+    ctx.lineTo(x,   y+r);
+    ctx.arcTo(x,   y,   x+r, y,     r);
+    ctx.closePath();
+  }
+
+  for(const sz of [192,512]){
+    try{
+      const canvas=document.createElement('canvas');
+      canvas.width=sz; canvas.height=sz;
+      const ctx=canvas.getContext('2d');
+
+      // Solid background (more reliable than gradient on Android browsers)
+      ctx.fillStyle=color||'#6200ea';
+      roundedRect(ctx,0,0,sz,sz,sz*0.22);
+      ctx.fill();
+
+      // Darker inner shadow
+      ctx.fillStyle='rgba(0,0,0,0.15)';
+      roundedRect(ctx,sz*0.05,sz*0.05,sz*0.9,sz*0.9,sz*0.18);
+      ctx.fill();
+
+      // Reset to main color
+      ctx.fillStyle=lightenColor(color,30);
+      roundedRect(ctx,sz*0.05,sz*0.05,sz*0.9,sz*0.9,sz*0.18);
+      ctx.fill();
+
+      // Letter (most reliable — no emoji rendering issues)
+      ctx.fillStyle='rgba(255,255,255,0.95)';
+      ctx.textAlign='center';
+      ctx.textBaseline='middle';
+      ctx.font='bold '+(sz*0.5)+'px sans-serif';
+      const letter=(name||'A')[0].toUpperCase().replace(/[^A-Z0-9]/,'A');
+      ctx.fillText(letter, sz/2, sz/2+sz*0.04);
+
+      const b64=canvas.toDataURL('image/png').split(',')[1];
+      if(!b64||b64.length<100) throw new Error('canvas empty');
+
+      zip.file('icon-'+sz+'.png', b64, {base64:true});
+      log('✅ icon-'+sz+'.png ('+sz+'×'+sz+')','ok');
+
+      // Save as Android mipmap ic_launcher for ALL sizes
+      if(sz===192){
+        const densities=['mdpi','hdpi','xhdpi','xxhdpi','xxxhdpi'];
+        densities.forEach(dpi=>{
+          zip.folder('android/app/src/main/res/mipmap-'+dpi).file('ic_launcher.png',b64,{base64:true});
+          zip.folder('android/app/src/main/res/mipmap-'+dpi).file('ic_launcher_round.png',b64,{base64:true});
+        });
+
+        // Adaptive icon for Android 8+ (API 26+)
+        // Use drawable background image instead of color reference for reliability
+        const adaptiveXml=`<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@mipmap/ic_launcher_background"/>
+    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
+</adaptive-icon>`;
+        zip.folder('android/app/src/main/res/mipmap-anydpi-v26').file('ic_launcher.xml', adaptiveXml);
+        zip.folder('android/app/src/main/res/mipmap-anydpi-v26').file('ic_launcher_round.xml', adaptiveXml);
+
+        // Create solid background PNG (same color as theme)
+        const bgCanvas=document.createElement('canvas');
+        bgCanvas.width=192;bgCanvas.height=192;
+        const bgCtx=bgCanvas.getContext('2d');
+        bgCtx.fillStyle=color||'#6200ea';
+        bgCtx.fillRect(0,0,192,192);
+        const bgB64=bgCanvas.toDataURL('image/png').split(',')[1]||b64;
+
+        // Foreground = icon, Background = solid color
+        ['mdpi','hdpi','xhdpi','xxhdpi','xxxhdpi'].forEach(dpi=>{
+          zip.folder('android/app/src/main/res/mipmap-'+dpi).file('ic_launcher_foreground.png',b64,{base64:true});
+          zip.folder('android/app/src/main/res/mipmap-'+dpi).file('ic_launcher_background.png',bgB64,{base64:true});
+        });
+
+        // Single colors.xml with all colors — no duplicates!
+        zip.folder('android/app/src/main/res/values').file('colors.xml',
+`<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_background">${color||'#6200ea'}</color>
+    <color name="colorPrimary">${color||'#6200ea'}</color>
+    <color name="colorAccent">#ffffff</color>
+</resources>`);
+        log('✅ Android mipmap іконки ('+densities.length+' розмірів)','ok');
+      }
+    }catch(e){
+      log('⚠ icon-'+sz+': '+e.message,'warn');
+      // Fallback: use a minimal valid 1x1 PNG
+      const fallback='iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+      if(sz===192){
+        ['mdpi','hdpi','xhdpi','xxhdpi','xxxhdpi'].forEach(dpi=>{
+          zip.folder('android/app/src/main/res/mipmap-'+dpi).file('ic_launcher.png',fallback,{base64:true});
+          zip.folder('android/app/src/main/res/mipmap-'+dpi).file('ic_launcher_round.png',fallback,{base64:true});
+        });
+      }
+    }
+    await sleep(50);
+  }
+
+  // ── config.json (for AppsGeyser reference) ──
+  setProgress(70,'Генерую конфіг...');
+  log('📋 Генерую config.json для AppsGeyser...');
+  await sleep(150);
+
+  const config={
+    _instructions: 'Завантаж index.html на AppsGeyser.com → Create App → HTML/Website',
+    app_name: name,
+    package_name: pkg,
+    description: desc,
+    version: ver,
+    theme_color: color,
+    orientation: orient,
+    icon_emoji: icon,
+    permissions: permManifest,
+    permissions_detail: selectedPerms.map(p=>({name:p.name,android:'android.permission.'+p.manifest,dangerous:p.danger})),
+    appsgeyser_url: 'https://appsgeyser.com',
+    pwa_ready: true,
+    generated_at: new Date().toISOString()
+  };
+  zip.file('config.json', JSON.stringify(config,null,2));
+  log(`✅ config.json — ${permManifest.length} дозволів: ${selectedPerms.map(p=>p.icon+p.name).join(', ')}`,'ok');
+
+  // ── AndroidManifest.xml (AppsGeyser reads this) ──
+  setProgress(78,'Генерую AndroidManifest.xml...');
+  log('📋 Генерую AndroidManifest.xml...');
+  await sleep(100);
+
+  const permXml=permManifest.map(p=>`    <uses-permission android:name="android.permission.${p}"/>`).join('\n');
+  const manifest_xml=`<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="${pkg}"
+    android:versionCode="1"
+    android:versionName="${ver}">
+
+    <!-- Permissions -->
+${permXml}
+
+    <application
+        android:label="${name}"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:hardwareAccelerated="true"
+        android:allowBackup="true"
+        android:usesCleartextTraffic="true">
+
+        <activity
+            android:name=".MainActivity"
+            android:screenOrientation="${orient}"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>`;
+  zip.file('AndroidManifest.xml', manifest_xml);
+  log(`✅ AndroidManifest.xml — ${permManifest.length} permissions`,'ok');
+
+  // ── ANDROID GRADLE PROJECT + GITHUB ACTIONS ──
+  setProgress(87,'Генерую Android проект...');
+  log('🤖 Генерую повний Android Gradle проект...','info');
+  await sleep(100);
+
+  // ── build.gradle (project level) ──
+  zip.folder('android').file('build.gradle',
+`buildscript {
+    repositories { google(); mavenCentral() }
+    dependencies { classpath 'com.android.tools.build:gradle:8.2.0' }
+}
+allprojects {
+    repositories { google(); mavenCentral() }
+}
+task clean(type: Delete) { delete rootProject.buildDir }`);
+
+  // ── settings.gradle ──
+  zip.folder('android').file('settings.gradle',
+`rootProject.name = "${name.replace(/"/g,'')}"
+include ':app'`);
+
+  // ── gradle.properties ──
+  zip.folder('android').file('gradle.properties',
+`android.useAndroidX=true
+android.enableJetifier=true
+org.gradle.jvmargs=-Xmx2048m`);
+
+  // gradle wrapper not needed — using direct gradle in CI
+
+  // ── gradle wrapper (already set below in workflow fix) ──
+  // ── app/build.gradle ──
+  zip.folder('android/app').file('build.gradle',
+`plugins { id 'com.android.application' }
+android {
+    namespace '${pkg}'
+    compileSdk 34
+    buildToolsVersion '34.0.0'
+    defaultConfig {
+        applicationId '${pkg}'
+        minSdk 21
+        targetSdk 34
+        versionCode 1
+        versionName '${ver}'
+    }
+    buildTypes {
+        debug { debuggable true }
+        release { minifyEnabled false }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    lint { abortOnError false }
+}`);
+
+  // ── AndroidManifest.xml (app) ──
+  const orientAttr=orient==='portrait'?'portrait':orient==='landscape'?'landscape':'unspecified';
+  // Ensure INTERNET is always included + selected permissions
+  const allPerms=['INTERNET',...permManifest.filter(p=>p!=='INTERNET')];
+  log(`📋 Permissions in APK: ${allPerms.join(', ')}`,'info');
+  zip.folder('android/app/src/main').file('AndroidManifest.xml',
+`<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+${allPerms.map(p=>`    <uses-permission android:name="android.permission.${p}"/>`).join('\n')}
+    <application
+        android:label="${name}"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:usesCleartextTraffic="true"
+        android:hardwareAccelerated="true">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:screenOrientation="${orientAttr}"
+            android:configChanges="orientation|screenSize|keyboardHidden">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>`);
+
+  // ── MainActivity.java ──
+  const pkgPath=pkg.replace(/\./g,'/');
+  zip.folder(`android/app/src/main/java/${pkgPath}`).file('MainActivity.java',
+`package ${pkg};
+
+import android.app.Activity;
+import android.os.Bundle;
+import android.view.Window;
+import android.view.WindowManager;
+import android.graphics.Color;
+import android.webkit.WebChromeClient;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+
+public class MainActivity extends Activity {
+    private WebView webView;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        super.onCreate(savedInstanceState);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
+        webView = new WebView(this);
+        webView.setBackgroundColor(Color.BLACK);
+
+        WebSettings settings = webView.getSettings();
+        settings.setJavaScriptEnabled(true);
+        settings.setDomStorageEnabled(true);
+        settings.setAllowFileAccess(true);
+        settings.setAllowContentAccess(true);
+        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        settings.setMediaPlaybackRequiresUserGesture(false);
+        settings.setDatabaseEnabled(true);
+
+        webView.setWebChromeClient(new WebChromeClient());
+        webView.setWebViewClient(new WebViewClient());
+        setContentView(webView);
+
+        webView.loadDataWithBaseURL(
+            "file:///android_asset/",
+            getHtmlContent(),
+            "text/html",
+            "UTF-8",
+            null
+        );
+    }
+
+    private String getHtmlContent() {
+        try {
+            java.io.InputStream is = getAssets().open("index.html");
+            byte[] buffer = new byte[is.available()];
+            is.read(buffer);
+            is.close();
+            return new String(buffer, "UTF-8");
+        } catch (Exception e) {
+            return "<html><body><h1>Error: " + e.getMessage() + "</h1></body></html>";
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (webView != null && webView.canGoBack()) {
+            webView.goBack();
+        } else {
+            super.onBackPressed();
+        }
+    }
+}`);
+
+  // ── assets/index.html ──
+  zip.folder('android/app/src/main/assets').file('index.html', processedHtml);
+  if(images.length&&!document.getElementById('embed-images').checked){
+    images.forEach(img=>zip.folder('android/app/src/main/assets/images').file(img.name,img.base64,{base64:true}));
+  }
+  log('✅ Android Java проект згенеровано','ok');
+
+  // ── res/values/strings.xml ──
+  zip.folder('android/app/src/main/res/values').file('strings.xml',
+`<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">${name.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</string>
+</resources>`);
+
+  // ── res/values/styles.xml ──
+  zip.folder('android/app/src/main/res/values').file('styles.xml',
+`<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="AppTheme" parent="android:Theme.Material.NoActionBar">
+        <item name="android:colorPrimary">${color}</item>
+        <item name="android:windowBackground">@android:color/black</item>
+    </style>
+</resources>`);
+
+  // ── .github/workflows/build.yml (GitHub Actions) ──
+  setProgress(91,'Генерую GitHub Actions workflow...');
+  log('⚡ Генерую GitHub Actions — автоматичне збирання APK...','info');
+  await sleep(80);
+
+  zip.folder('.github/workflows').file('build-apk.yml',
+`name: Build APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.4'
+
+      - name: Build Debug APK
+        working-directory: android
+        run: gradle assembleDebug --no-daemon
+
+      - name: Upload APK ✅
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${name.replace(/\s+/g,'-')}-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30`);
+
+  // ── gradlew + wrapper (proper shell script) ──
+  zip.folder('android').file('gradlew',
+`#!/usr/bin/env sh
+# Gradle wrapper script
+DIRNAME="\`dirname "\$0"\`"
+cd "\$DIRNAME" || exit
+exec gradle assembleDebug "\$@"`);
+
+  // ── gradle-wrapper.properties ──
+  zip.folder('android/gradle/wrapper').file('gradle-wrapper.properties',
+`distributionBase=GRADLE_USER_HOME
+distributionPath=wrapper/dists
+distributionUrl=https\\://services.gradle.org/distributions/gradle-8.4-bin.zip
+networkTimeout=10000
+validateDistributionUrl=true
+zipStoreBase=GRADLE_USER_HOME
+zipStorePath=wrapper/dists`);
+
+  log('✅ GitHub Actions workflow згенеровано','ok');
+
+  // ── README ──
+  setProgress(94,'Генерую інструкцію...');
+  log('📖 Генерую README.md...');
+  await sleep(80);
+
+  const readme=`# ${name}
+
+> Згенеровано HTML→APK конвертером
+
+## 🚀 Як отримати APK автоматично
+
+### Крок 1 — GitHub
+1. Відкрий [github.com](https://github.com) → **Sign Up** (безкоштовно)
+2. Натисни **"New repository"**
+3. Назви репозиторій, вибери **Public**
+4. Натисни **"Create repository"**
+
+### Крок 2 — Завантаж файли
+1. Натисни **"uploading an existing file"**
+2. Перетягни **ВСІ файли** з цього ZIP (включаючи папки \`android/\` і \`.github/\`)
+3. Натисни **"Commit changes"**
+
+### Крок 3 — Чекай APK
+1. Відкрий вкладку **Actions** у репозиторії
+2. Побачиш workflow **"Build APK"** — він запуститься автоматично
+3. Чекай 3-7 хвилин поки збереться
+4. Натисни на workflow → **Artifacts** → скачай APK!
+
+### Або скачай з Releases
+Після першого успішного build — APK з'явиться у **Releases** справа на головній сторінці репо.
+
+## 📱 Дозволи
+${selectedPerms.map(p=>`- ${p.icon} ${p.name}`).join('\n')}
+
+## 📦 Файли проекту
+- \`android/\` — повний Android Gradle проект
+- \`.github/workflows/build-apk.yml\` — автоматичне збирання
+- \`index.html\` — PWA версія
+- \`manifest.json\` + \`sw.js\` — PWA підтримка
+
+---
+*Package: \`${pkg}\` | Version: \`${ver}\`*`;
+
+  zip.file('README.md', readme);
+  zip.file('README.txt', `Дивись README.md для інструкцій!\nПакет: ${pkg} | Версія: ${ver}`);
+  log('✅ README.md з інструкцією','ok');
+
+  // ── Generate ZIP ──
+  setProgress(95,'Пакую ZIP...');
+  log('📦 Пакую ZIP архів...');
+  await sleep(200);
+
+  zipBlob=await zip.generateAsync({type:'blob',compression:'DEFLATE'});
+  log('✅ ZIP готовий! Розмір: '+formatSize(zipBlob.size),'ok');
+  setProgress(100,'✅ Готово!');
+
+  await sleep(500);
+
+  // Show result
+  if(silentMode) return;
+  document.getElementById('result-icon').textContent=icon||'🚀';
+  document.getElementById('result-name').textContent=name;
+  document.getElementById('result-pkg').textContent=pkg;
+  document.getElementById('result-size').textContent=formatSize(zipBlob.size)+(images.length?` · ${images.length} зображень`:'');
+  setStep(3);
+}
+
+function toggleGhToken(){
+  const f=document.getElementById('gh-token');
+  f.type=f.type==='password'?'text':'password';
+}
+
+window.addEventListener('load',()=>{
+  const saved=localStorage.getItem('gh_token');
+  if(saved){const el=document.getElementById('gh-token');if(el){el.value=saved;updateGhTokenStatus(saved);}}
+  document.getElementById('gh-token')?.addEventListener('input',e=>updateGhTokenStatus(e.target.value.trim()));
+});
+
+function updateGhTokenStatus(k){
+  const st=document.getElementById('gh-token-status');if(!st)return;
+  if(k.startsWith('ghp_')||k.startsWith('github_pat_')){
+    st.style.color='var(--green2)';st.textContent='✅ Токен збережено';
+    localStorage.setItem('gh_token',k);
+    const appName=document.getElementById('app-name').value;
+    const repoEl=document.getElementById('gh-repo-name');
+    if(appName&&repoEl&&!repoEl.value)
+      repoEl.value=appName.toLowerCase().replace(/[^a-z0-9]/g,'-').replace(/-+/g,'-').slice(0,40);
+  } else if(k.length>0){
+    st.style.color='var(--red)';st.textContent='❌ Невірний формат';
+  } else {
+    st.style.color='var(--muted)';st.textContent='⚪ Не введено';
+    localStorage.removeItem('gh_token');
+  }
+}
+
+async function autoDeployGitHub(){
+  if(!htmlContent){alert('Спочатку завантаж HTML файл!');return;}
+  const token=document.getElementById('gh-token').value.trim();
+  if(!token){alert('Введи GitHub токен!');return;}
+  const repoName=(document.getElementById('gh-repo-name').value.trim()||
+    document.getElementById('app-name').value.toLowerCase().replace(/[^a-z0-9]/g,'-')||'my-app')
+    .replace(/\s+/g,'-').replace(/[^a-z0-9\-]/gi,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0,40)||'my-app';
+  const appName=document.getElementById('app-name').value||'MyApp';
+  const statusEl=document.getElementById('auto-deploy-status');
+  const btn=document.getElementById('btn-auto-deploy');
+  btn.disabled=true;statusEl.style.display='block';statusEl.innerHTML='';
+  function addLog(icon,text,color='var(--muted2)'){
+    statusEl.innerHTML+=`<div style="color:${color};font-size:9px;padding:2px 0;line-height:1.6">${icon} ${text}</div>`;
+  }
+  const API='https://api.github.com';
+  const H={'Authorization':'Bearer '+token,'Content-Type':'application/json','Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'};
+  try{
+    addLog('⟳','Генерую проект...','var(--amber2)');
+    await goStep2(true);
+    if(!zipBlob){addLog('❌','Помилка генерації','var(--red)');btn.disabled=false;return;}
+    addLog('✅','Проект готовий','var(--green)');
+    addLog('👤','Перевіряю токен...');
+    const me=await fetch(API+'/user',{headers:H}).then(r=>r.json());
+    if(!me.login) throw new Error('Невірний токен: '+(me.message||'unauthorized'));
+    const username=me.login;
+    addLog('✅','@'+username,'var(--green)');
+    const repoFullName=username+'/'+repoName;
+    addLog('📁','Створюю репо '+repoName+'...');
+    const cr=await fetch(API+'/user/repos',{method:'POST',headers:H,body:JSON.stringify({
+      name:repoName,
+      description:appName+' (HTML→APK)',
+      private:false,
+      auto_init:true  // creates main branch with README automatically!
+    })}).then(r=>r.json());
+    addLog(cr.id?'✅':'ℹ️',cr.id?'Репозиторій створено':'Репо вже існує',cr.id?'var(--green)':'var(--muted2)');
+    await new Promise(r=>setTimeout(r,2000)); // wait for GitHub to init
+
+    // Get current HEAD sha
+    addLog('📤','Завантажую всі файли одним комітом...');
+    const JSZipLib=window.JSZip;
+    const zipData=await JSZipLib.loadAsync(zipBlob);
+    const fileList=Object.entries(zipData.files).filter(([,f])=>!f.dir);
+
+    // Get HEAD sha
+    const refData=await fetch(API+'/repos/'+repoFullName+'/git/refs/heads/main',{headers:H}).then(r=>r.json());
+    const headSha=refData?.object?.sha;
+    if(!headSha) throw new Error('Не вдалось отримати HEAD. Спробуй ще раз.');
+    const headCommit=await fetch(API+'/repos/'+repoFullName+'/git/commits/'+headSha,{headers:H}).then(r=>r.json());
+    const baseTreeSha=headCommit?.tree?.sha;
+
+    // Create blobs
+    addLog('📦','Готую '+fileList.length+' файлів...');
+    const treeItems=[];
+    let done=0;
+    for(const [fp,fo] of fileList){
+      const b64=await fo.async('base64');
+      const blob=await fetch(API+'/repos/'+repoFullName+'/git/blobs',{
+        method:'POST',headers:H,body:JSON.stringify({content:b64,encoding:'base64'})
+      }).then(r=>r.json());
+      if(blob.sha) treeItems.push({path:fp,mode:'100644',type:'blob',sha:blob.sha});
+      done++;
+      if(done%5===0||done===fileList.length) addLog('📄',done+'/'+fileList.length+'...');
+    }
+
+    // Create tree
+    addLog('🌲','Створюю tree...');
+    const newTree=await fetch(API+'/repos/'+repoFullName+'/git/trees',{
+      method:'POST',headers:H,
+      body:JSON.stringify({base_tree:baseTreeSha,tree:treeItems})
+    }).then(r=>r.json());
+    if(!newTree.sha) throw new Error('Tree error: '+JSON.stringify(newTree));
+
+    // Create single commit
+    addLog('💾','Створюю коміт...');
+    const newCommit=await fetch(API+'/repos/'+repoFullName+'/git/commits',{
+      method:'POST',headers:H,
+      body:JSON.stringify({
+        message:'Add '+appName+' app',
+        tree:newTree.sha,
+        parents:[headSha],
+        author:{name:'HTML-to-APK',email:'apk@builder.local'}
+      })
+    }).then(r=>r.json());
+    if(!newCommit.sha) throw new Error('Commit error: '+JSON.stringify(newCommit));
+
+    // Update branch ref
+    await fetch(API+'/repos/'+repoFullName+'/git/refs/heads/main',{
+      method:'PATCH',headers:H,
+      body:JSON.stringify({sha:newCommit.sha,force:true})
+    });
+    addLog('✅','Всі '+done+' файлів в одному коміті!','var(--green)');
+    addLog('⚡','GitHub Actions запускається...','var(--amber2)');
+    await new Promise(r=>setTimeout(r,3000));
+    const actionsUrl='https://github.com/'+repoFullName+'/actions';
+    const repoUrl='https://github.com/'+repoFullName;
+    statusEl.innerHTML+=`<div style="margin-top:10px;padding:12px;background:rgba(0,255,136,.07);border:1px solid rgba(0,255,136,.3);border-radius:10px"><div style="color:var(--green);font-family:'Syne',sans-serif;font-weight:800;font-size:12px;margin-bottom:8px">🎉 ЗАПУЩЕНО!</div><div style="font-size:8px;color:var(--muted2);line-height:2">⏱ Збірка: <b style="color:var(--text)">3-7 хвилин</b><br>Потім: Actions → Artifacts → <b style="color:var(--green)">скачай APK</b></div><a href="${actionsUrl}" target="_blank" style="display:block;margin-top:10px;padding:10px;background:linear-gradient(135deg,#00aa44,#007733);border-radius:8px;color:#000;text-align:center;font-family:'Syne',sans-serif;font-weight:800;text-decoration:none;font-size:11px">⚡ GITHUB ACTIONS</a><a href="${repoUrl}" target="_blank" style="display:block;margin-top:6px;padding:8px;background:var(--border);border-radius:8px;color:var(--muted2);text-align:center;font-size:9px;text-decoration:none">📁 ${repoFullName}</a></div>`;
+  }catch(e){addLog('❌','Помилка: '+e.message,'var(--red)');}
+  btn.disabled=false;
+}
+
+
+function downloadZip(){
+  if(!zipBlob) return;
+  const name=document.getElementById('app-name').value||'MyApp';
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(zipBlob);
+  a.download=name.replace(/\s+/g,'_')+'_APK_Project.zip';
+  document.body.appendChild(a);a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+
+function openAppsGeyser(){
+  window.open('https://appsgeyser.com','_blank');
+}
+
+function showPWAInstructions(){
+  document.getElementById('pwa-modal').style.display='block';
+}
+
+function reset(){
+  htmlContent='';zipBlob=null;
+  document.getElementById('drop-icon').textContent='📄';
+  document.getElementById('drop-title').textContent='Натисни або перетягни HTML';
+  document.getElementById('drop-sub').textContent='Підтримується .html, .htm';
+  dropZone.classList.remove('file-chosen');
+  document.getElementById('log-box').innerHTML='';
+  document.getElementById('file-input').value='';
+  setStep(1);
+}
+
+// ── HELPERS ──
+function darkenColorHex(hex,pct){return darkenColor(hex,pct);}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+function formatSize(b){return b>1048576?(b/1048576).toFixed(1)+' МБ':b>1024?(b/1024).toFixed(0)+' КБ':b+' Б';}
+function lightenColor(hex,pct){const n=parseInt(hex.slice(1),16);const r=Math.min(255,((n>>16)&255)+pct),g=Math.min(255,((n>>8)&255)+pct),b=Math.min(255,(n&255)+pct);return'#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('');}
+function darkenColor(hex,pct){return lightenColor(hex,-pct);}
+</script>
+</body>
+</html>
